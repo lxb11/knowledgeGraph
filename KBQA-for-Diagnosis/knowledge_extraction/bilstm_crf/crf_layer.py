@@ -617,7 +617,9 @@ class CRF(Layer):
         constants = [chain_energy]
 
         if mask is not None:
-            mask2 = K.cast(K.concatenate([tf.to_float(mask), K.zeros_like(mask[:, :1])], axis=1), K.floatx())
+            mask2 = K.cast(
+                K.concatenate([K.cast(mask, dtype=tf.float32), K.zeros_like(K.cast(mask[:, :1], dtype=tf.float32))], axis=1),
+                K.floatx())
             constants.append(mask2)
 
         def _step(input_energy_i, states):

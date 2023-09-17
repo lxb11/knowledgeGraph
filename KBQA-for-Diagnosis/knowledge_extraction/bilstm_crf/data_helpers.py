@@ -3,7 +3,7 @@ import re, os
 from itertools import chain
 from collections import Counter
 from keras.utils import to_categorical
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 
 
@@ -31,7 +31,9 @@ class NerDataProcessor(object):
         多 O
         月 O
         """
+        # 样本
         X = []
+        # 标签
         y = []
         sentence = []
         labels = []

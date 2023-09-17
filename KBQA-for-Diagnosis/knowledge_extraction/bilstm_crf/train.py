@@ -1,5 +1,5 @@
 # coding=utf-8
-import keras.callbacks
+import keras
 import numpy as np
 from bilstm_crf_model import BiLstmCrfModel
 from crf_layer import CRF

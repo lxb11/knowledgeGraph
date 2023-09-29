@@ -6,20 +6,21 @@ from random import choice
 BERT_MAX_LEN = 256
 RANDOM_SEED = 2019
 
+
 def find_head_idx(source, target):
-    #source = [100,120,300,231,435345,12323,7574,2432434,5456,4]
-    #target = [100,120,300]
     target_len = len(target)
     for i in range(len(source)):
-        if source[i: i + target_len] == target: #source[0:3] == target
+        if source[i: i + target_len] == target:
             return i
     return -1
+
 
 def to_tuple(sent):
     triple_list = []
     for triple in sent['triple_list']:
         triple_list.append(tuple(triple))
     sent['triple_list'] = triple_list
+
 
 def seq_padding(batch, padding=0):
     length_batch = [len(seq) for seq in batch]
@@ -28,11 +29,12 @@ def seq_padding(batch, padding=0):
         np.concatenate([seq, [padding] * (max_length - len(seq))]) if len(seq) < max_length else seq for seq in batch
     ])
 
+
 def load_data(train_path, dev_path, test_path, rel_dict_path):
-    train_data = json.load(open(train_path,encoding='utf8'))
-    dev_data = json.load(open(dev_path,encoding='utf8'))
-    test_data = json.load(open(test_path,encoding='utf8'))
-    id2rel, rel2id = json.load(open(rel_dict_path,encoding='utf8'))
+    train_data = json.load(open(train_path, encoding='utf8'))
+    dev_data = json.load(open(dev_path, encoding='utf8'))
+    test_data = json.load(open(test_path, encoding='utf8'))
+    id2rel, rel2id = json.load(open(rel_dict_path, encoding='utf8'))
 
     id2rel = {int(i): j for i, j in id2rel.items()}
     num_rels = len(id2rel)
@@ -42,11 +44,11 @@ def load_data(train_path, dev_path, test_path, rel_dict_path):
     np.random.shuffle(random_order)
     train_data = [train_data[i] for i in random_order]
 
-    for sent in train_data: 
+    for sent in train_data:
         to_tuple(sent)
-    for sent in dev_data:  
+    for sent in dev_data:
         to_tuple(sent)
-    for sent in test_data: 
+    for sent in test_data:
         to_tuple(sent)
 
     print("train_data len:", len(train_data))
@@ -67,8 +69,10 @@ class data_generator:
         self.steps = len(self.data) // self.batch_size
         if len(self.data) % self.batch_size != 0:
             self.steps += 1
+
     def __len__(self):
         return self.steps
+
     def __iter__(self):
         while True:
             idxs = list(range(len(self.data)))
@@ -76,7 +80,7 @@ class data_generator:
             np.random.shuffle(idxs)
             tokens_batch, segments_batch, sub_heads_batch, sub_tails_batch, sub_head_batch, sub_tail_batch, obj_heads_batch, obj_tails_batch = [], [], [], [], [], [], [], []
             for idx in idxs:
-                line = self.data[idx] #{'text': '郭应寿郭应寿曾先后就读于清华大学、中国科学院高能物理研究所以及北京大学学习核物理及技术，后因创天际网CTO业从北京大学终止博士学业', 'triple_list': [('郭应寿', '毕业院校_@value', '北京大学')]}
+                line = self.data[idx]
                 text = ' '.join(line['text'].split()[:self.maxlen])
                 tokens = self.tokenizer.tokenize(text)
                 if len(tokens) > BERT_MAX_LEN:
@@ -85,18 +89,17 @@ class data_generator:
 
                 s2ro_map = {}
                 for triple in line['triple_list']:
-                    #triple = ('郭应寿', '毕业院校_@value', '北京大学')
-                    triple = (self.tokenizer.tokenize(triple[0])[1:-1], triple[1], self.tokenizer.tokenize(triple[2])[1:-1])
-                    #triple = ([100,120,300], '毕业院校_@value', [231,245,666,2123])
-                    sub_head_idx = find_head_idx(tokens, triple[0]) # 0
-                    obj_head_idx = find_head_idx(tokens, triple[2]) # 32
+                    triple = (
+                    self.tokenizer.tokenize(triple[0])[1:-1], triple[1], self.tokenizer.tokenize(triple[2])[1:-1])
+                    sub_head_idx = find_head_idx(tokens, triple[0])
+                    obj_head_idx = find_head_idx(tokens, triple[2])
                     if sub_head_idx != -1 and obj_head_idx != -1:
-                        sub = (sub_head_idx, sub_head_idx + len(triple[0]) - 1) # sub = (0,2)
+                        sub = (sub_head_idx, sub_head_idx + len(triple[0]) - 1)
                         if sub not in s2ro_map:
-                            s2ro_map[sub] = [] # s2ro_map[(0,2)] = [(32,35,33),(),..]
+                            s2ro_map[sub] = []
                         s2ro_map[sub].append((obj_head_idx,
-                                           obj_head_idx + len(triple[2]) - 1,
-                                           self.rel2id[triple[1]]))
+                                              obj_head_idx + len(triple[2]) - 1,
+                                              self.rel2id[triple[1]]))
 
                 if s2ro_map:
                     token_ids, segment_ids = self.tokenizer.encode(text)
@@ -105,16 +108,14 @@ class data_generator:
                         segment_ids = segment_ids[:text_len]
                     tokens_batch.append(token_ids)
                     segments_batch.append(segment_ids)
-                    sub_heads, sub_tails = np.zeros(text_len), np.zeros(text_len) # [0,0,0,0,0]
+                    sub_heads, sub_tails = np.zeros(text_len), np.zeros(text_len)
                     for s in s2ro_map:
-                        sub_heads[s[0]] = 1   #(0,2), [1,0,0,0,0]
-                        sub_tails[s[1]] = 1   # [0,0,1,0,0]
-                    sub_head, sub_tail = choice(list(s2ro_map.keys())) # (0,2)
+                        sub_heads[s[0]] = 1
+                        sub_tails[s[1]] = 1
+                    sub_head, sub_tail = choice(list(s2ro_map.keys()))
                     obj_heads, obj_tails = np.zeros((text_len, self.num_rels)), np.zeros((text_len, self.num_rels))
-                    # obj_heads = [[0,0,0,0,0],[0,0,1,0,0],[0,0,0,1,0]]
-                    for ro in s2ro_map.get((sub_head, sub_tail), []): #[(32,35,33),(),..]
-                        # ro = (2,4,1)
-                        obj_heads[ro[0]][ro[2]] = 1 # obj_heads[2][4] = 1
+                    for ro in s2ro_map.get((sub_head, sub_tail), []):
+                        obj_heads[ro[0]][ro[2]] = 1
                         obj_tails[ro[1]][ro[2]] = 1
                     sub_heads_batch.append(sub_heads)
                     sub_tails_batch.append(sub_tails)
@@ -130,16 +131,6 @@ class data_generator:
                         obj_heads_batch = seq_padding(obj_heads_batch, np.zeros(self.num_rels))
                         obj_tails_batch = seq_padding(obj_tails_batch, np.zeros(self.num_rels))
                         sub_head_batch, sub_tail_batch = np.array(sub_head_batch), np.array(sub_tail_batch)
-                        yield [tokens_batch, segments_batch, sub_heads_batch, sub_tails_batch, sub_head_batch, sub_tail_batch, obj_heads_batch, obj_tails_batch], None
+                        yield [tokens_batch, segments_batch, sub_heads_batch, sub_tails_batch, sub_head_batch,
+                               sub_tail_batch, obj_heads_batch, obj_tails_batch], None
                         tokens_batch, segments_batch, sub_heads_batch, sub_tails_batch, sub_head_batch, sub_tail_batch, obj_heads_batch, obj_tails_batch, = [], [], [], [], [], [], [], []
-
-if __name__ == '__main__':
-    train_path = "E:/工作空间/KBQA-for-Diagnosis/knowledge_extraction/CasRel/data/train_triples.json"
-    dev_path = "E:/工作空间/KBQA-for-Diagnosis/knowledge_extraction/CasRel/data/dev_triples.json"
-    test_path = "E:/工作空间/KBQA-for-Diagnosis/knowledge_extraction/CasRel/data/test_triples.json"
-    rel_dict_path = "E:/工作空间/KBQA-for-Diagnosis/knowledge_extraction/CasRel/data/rel2id.json"
-
-    train_data, dev_data, test_data, id2rel, rel2id, num_rels = load_data(train_path, dev_path, test_path, rel_dict_path)
-    print(train_data[0])
-    print(id2rel)
-    print(num_rels)

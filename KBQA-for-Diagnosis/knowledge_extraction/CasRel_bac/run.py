@@ -32,7 +32,7 @@ if __name__ == '__main__':
     
     if args.train:
         BATCH_SIZE = 8
-        EPOCH = 2
+        EPOCH = 1
         MAX_LEN = 256
         STEPS = len(train_data) // BATCH_SIZE
         data_manager = data_generator(train_data, tokenizer, rel2id, num_rels, MAX_LEN, BATCH_SIZE)
@@ -47,4 +47,4 @@ if __name__ == '__main__':
         test_result_path = 'test_result.json'
         isExactMatch = True if dataset_dir == 'Wiki-KBP' else False
         precision, recall, f1_score = metric(subject_model, object_model, test_data, id2rel, tokenizer, isExactMatch, test_result_path)
-        print("precision:{0}\trecall:{1}\tf1_score:{2}".format(precision,recall,f1_score))
+        print(f'precision:{0}\trecall:{1}\tf1_score:{2}'.format(round(precision,4),round(recall,4),round(f1_score,4)))

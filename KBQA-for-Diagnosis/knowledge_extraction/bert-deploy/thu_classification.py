@@ -105,7 +105,7 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 
 flags.DEFINE_integer('save_summary_steps', 500, 'summary steps')
 
-# logger = get_logger(os.path.join(FLAGS.output_dir, 'c.log'))
+# logger = get_logger(os.path.join(FLAGS.output_dir, 'c.logs'))
 import logging
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

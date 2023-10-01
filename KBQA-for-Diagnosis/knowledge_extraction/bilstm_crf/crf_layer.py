@@ -137,7 +137,7 @@ class ConditionalRandomField(Layer):
             input_length=input_length
         )  # 最后一步的log Z向量
         log_norm = tf.reduce_logsumexp(log_norm, 1)  # logsumexp得标量
-        # 计算损失 -log p
+        # 计算损失 -logs p
         return log_norm - target_score
 
     def sparse_loss(self, y_true, y_pred):
@@ -525,7 +525,7 @@ class CRF(Layer):
 
     def get_log_normalization_constant(self, input_energy, mask, **kwargs):
         """Compute logarithm of the normalization constance Z, where
-        Z = sum exp(-E) -> logZ = log sum exp(-E) =: -nlogZ
+        Z = sum exp(-E) -> logZ = logs sum exp(-E) =: -nlogZ
         """
         # should have logZ[:, i] == logZ[:, j] for any i, j
         logZ = self.recursion(input_energy, mask, return_sequences=False, **kwargs)
@@ -547,8 +547,8 @@ class CRF(Layer):
         return total_energy
 
     def get_negative_log_likelihood(self, y_true, X, mask):
-        """Compute the loss, i.e., negative log likelihood (normalize by number of time steps)
-           likelihood = 1/Z * exp(-E) ->  neg_log_like = - log(1/Z * exp(-E)) = logZ + E
+        """Compute the loss, i.e., negative logs likelihood (normalize by number of time steps)
+           likelihood = 1/Z * exp(-E) ->  neg_log_like = - logs(1/Z * exp(-E)) = logZ + E
         """
         input_energy = self.activation(K.dot(X, self.kernel) + self.bias)
         if self.use_boundary:
@@ -596,8 +596,8 @@ class CRF(Layer):
           = sum_{y2, y3} (exp(-(u2' y2 + y2' W y3 + u3' y3)) sum_{y1} exp(-(u1' y1' + y1' W y2))) \]
         Denote:
             \[ S(y2) := sum_{y1} exp(-(u1' y1 + y1' W y2)), \]
-            \[ Z = sum_{y2, y3} exp(log S(y2) - (u2' y2 + y2' W y3 + u3' y3)) \]
-            \[ logS(y2) = log S(y2) = log_sum_exp(-(u1' y1' + y1' W y2)) \]
+            \[ Z = sum_{y2, y3} exp(logs S(y2) - (u2' y2 + y2' W y3 + u3' y3)) \]
+            \[ logS(y2) = logs S(y2) = log_sum_exp(-(u1' y1' + y1' W y2)) \]
         Note that:
               yi's are one-hot vectors
               u1, u3: boundary energies have been merged

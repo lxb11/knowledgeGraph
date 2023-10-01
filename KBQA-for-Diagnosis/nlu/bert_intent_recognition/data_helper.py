@@ -189,7 +189,7 @@ def load_data(filename):
 
 
 if __name__ == '__main__':
-    data_path = "E:/工作空间/CMID/CMID.json"
+    data_path = "E:/01.code/02.ml/knowledgeGraph/CMID/CMID.json"
     data1 = gen_training_data(data_path)
     data2 = gen_sample_base_template()
 

@@ -1,18 +1,18 @@
-#encoding=utf8
+# encoding=utf8
 import keras
 import keras.backend as K
 from keras.models import Model
-import tensorflow as tf 
-import numpy as np 
+import tensorflow as tf
+import numpy as np
 import sys
 
 
 class ESIM(object):
-    def __init__( self, params):
+    def __init__(self, params):
         """Init."""
         self._params = params
 
-    def make_embedding_layer(self,name='embedding',embed_type='char',**kwargs):
+    def make_embedding_layer(self, name='embedding', embed_type='char', **kwargs):
 
         def init_embedding(weights=None):
             if embed_type == "char":
@@ -23,11 +23,11 @@ class ESIM(object):
                 output_dim = self._params['word_embed_size']
 
             return keras.layers.Embedding(
-                input_dim = input_dim,
-                output_dim = output_dim,
-                trainable = False,
-                name = name,
-                weights = weights,
+                input_dim=input_dim,
+                output_dim=output_dim,
+                trainable=False,
+                name=name,
+                weights=weights,
                 **kwargs)
 
         if embed_type == "char":
@@ -38,7 +38,7 @@ class ESIM(object):
         if embed_weights == []:
             embedding = init_embedding()
         else:
-            embedding = init_embedding(weights = [embed_weights])
+            embedding = init_embedding(weights=[embed_weights])
 
         return embedding
 
@@ -100,10 +100,10 @@ class ESIM(object):
         # ))(embedded_b)
 
         bilstm = keras.layers.Bidirectional(keras.layers.LSTM(
-                    self._params['lstm_units'],
-                    return_sequences=True,
-                    dropout=self._params['dropout_rate']
-                ))
+            self._params['lstm_units'],
+            return_sequences=True,
+            dropout=self._params['dropout_rate']
+        ))
 
         encoded_a = bilstm(embedded_a)
         encoded_b = bilstm(embedded_b)
@@ -111,11 +111,11 @@ class ESIM(object):
         # ---------- Local inference layer ---------- #
         atten_a, atten_b = SoftAttention()([encoded_a, encoded_b])
 
-        sub_a_atten = keras.layers.Lambda(lambda x: x[0]-x[1])([encoded_a, atten_a])
-        sub_b_atten = keras.layers.Lambda(lambda x: x[0]-x[1])([encoded_b, atten_b])
+        sub_a_atten = keras.layers.Lambda(lambda x: x[0] - x[1])([encoded_a, atten_a])
+        sub_b_atten = keras.layers.Lambda(lambda x: x[0] - x[1])([encoded_b, atten_b])
 
-        mul_a_atten = keras.layers.Lambda(lambda x: x[0]*x[1])([encoded_a, atten_a])
-        mul_b_atten = keras.layers.Lambda(lambda x: x[0]*x[1])([encoded_b, atten_b])
+        mul_a_atten = keras.layers.Lambda(lambda x: x[0] * x[1])([encoded_a, atten_a])
+        mul_b_atten = keras.layers.Lambda(lambda x: x[0] * x[1])([encoded_b, atten_b])
 
         m_a = keras.layers.concatenate([encoded_a, atten_a, sub_a_atten, mul_a_atten])
         m_b = keras.layers.concatenate([encoded_b, atten_b, sub_b_atten, mul_b_atten])
@@ -140,7 +140,6 @@ class ESIM(object):
         max_pool_b = keras.layers.GlobalMaxPooling1D()(composition_b)
         print(K.int_shape(composition_b))
         print(K.int_shape(avg_pool_b))
-        
 
         pooled = keras.layers.concatenate([avg_pool_a, max_pool_a, avg_pool_b, max_pool_b])
         pooled = keras.layers.Dropout(rate=self._params['dropout_rate'])(pooled)
@@ -155,7 +154,8 @@ class ESIM(object):
         model = Model(inputs=[a, b], outputs=prediction)
 
         return model
-        
+
+
 class SoftAttention(object):
     """
     Layer to compute local inference between two encoded sentences a and b.
@@ -166,15 +166,15 @@ class SoftAttention(object):
         b = inputs[1]
 
         attention = keras.layers.Lambda(self._attention,
-                                        output_shape = self._attention_output_shape,
-                                        arguments = None)(inputs)
+                                        output_shape=self._attention_output_shape,
+                                        arguments=None)(inputs)
 
         align_a = keras.layers.Lambda(self._soft_alignment,
-                                     output_shape = self._soft_alignment_output_shape,
-                                     arguments = None)([attention, b])
+                                      output_shape=self._soft_alignment_output_shape,
+                                      arguments=None)([attention, b])
         align_b = keras.layers.Lambda(self._soft_alignment,
-                                     output_shape = self._soft_alignment_output_shape,
-                                     arguments = None)([attention, a])
+                                      output_shape=self._soft_alignment_output_shape,
+                                      arguments=None)([attention, a])
 
         return align_a, align_b
 
